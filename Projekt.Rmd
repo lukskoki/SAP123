@@ -340,8 +340,61 @@ Zaključujemo da je dob čimbenik koji najbolje predviđa nastanak moždanog uda
 
 ## 4. pitanje: Postoji li povezanost između statusa pušenja i nastanka moždanog udara?
 
+Cilj ovog zadatka je ispitati postoji li statistički značajna povezanost između statusa pušenja i pojave moždanog udara. Pušenje je poznati rizični faktor za kardiovaskularne bolesti, stoga je važno provjeriti postoji li povezanost između ove navike i nastanka moždanog udara u promatranom skupu podataka.
 
-Za ispitivanje nezavisnosti varijable pušenja i moždanog udara, koristimo hi-kvadrat test nezavisnosti za kategorijske podatke.
+
+### Vizualizacija
+Prije provođenja testa, provodimo analizu kako bismo stekli uvid u strukturu podataka i potencijalne obrasce između statusa pušenja i pojave moždanog udara.
+
+
+```{r}
+smoking_freq <- table(stroke_data$smoking_status)
+smoking_freq
+
+barplot(
+  smoking_freq,
+  col = "lightgray",
+  main = "Distribucija statusa pušenja",
+  xlab = "Status pušenja",
+  ylab = "Broj ispitanika"
+)
+
+
+```
+Budući da su skupine prema statusu pušenja različitih veličina, rezultati testa mogu biti pod većim utjecajem dominantnih kategorija. Manje skupine mogu imati izraženije razlike u udjelima, ali njihov doprinos testnoj statistici može biti manji. Stoga je uz p-vrijednost važno analizirati i relativne udjele te grafičke prikaze podataka.
+
+
+```{r}
+tab <- table(stroke_data$smoking_status, stroke_data$stroke)
+
+# Udio moždanog udara po kategoriji pušenja
+prop_tab <- prop.table(tab, margin = 1)
+prop_tab
+
+```
+
+```{r}
+barplot(
+  prop_tab,
+  beside = TRUE,
+  col = c("blue", "tomato", "green", "gray"),
+  legend = TRUE,
+  main = "Udio moždanog udara prema statusu pušenja",
+  xlab = "Status pušenja",
+  ylab = "Udio"
+)
+```
+
+Vidljivo je da u svim kategorijama pušenja većinu čine ispitanici bez moždanog udara. Udio moždanog udara razlikuje se između kategorija statusa pušenja. Najviši udio moždanog udara uočava se kod osoba koje su ranije pušile (formerly smoked), dok je najniži udio zabilježen u kategoriji (Unknown).
+
+Ove razlike u udjelima sugeriraju moguću povezanost između statusa pušenja i pojave moždanog udara, no za potvrdu ove pretpostavke potrebno je provesti statistički test.
+
+
+### Statistički test
+
+Za ispitivanje nezavisnosti varijable pušenja i moždanog udara, koristimo hi-kvadrat test nezavisnosti za kategorijske podatke. Hi-kvadrat test omogućuje ispitivanje hipoteze o nezavisnosti promatranih varijabli, što ga čini prikladnim za analizu statusa pušenja i pojave moždanog udara u ovom skupu podataka.
+
+
 
 Za ovaj test postavljamo: 
 H0: smoking_status i stroke su nezavisni
@@ -351,36 +404,82 @@ Postavljamo razinu značajnosti na 0.5
 
 Prije testa trebamo napraviti kontingencijsku tablicu.
 
-Kontingencijskim tablicama prikazujemo frekvencije uzorka
-dobivenog mjerenjem dvodimenzionalnog kategorijskog ili diskretnog numeričkog obilježja
-(X, Y )
+Kontingencijskim tablicama prikazujemo frekvencije uzorka dobivenog mjerenjem dvodimenzionalnog kategorijskog ili diskretnog numeričkog obilježja (X, Y )
 
 
 ```{r}
-# Tablica frekvencija
-tab <- table(stroke_data$smoking_status, stroke_data$stroke)
-tab
+# Kontingencijska tablica
 
+tbl <- table(
+  stroke_data$smoking_status,
+  stroke_data$stroke
+)
+
+tbl
+
+
+```
+U tablici frekvencija vidimo da je kategorija 'Unknown' prisutna u velikom broju, a ne predstavlja stvarni status pušenja, s toga će mo ju maknuti iz tablice da ne bi loše utjecala na test.
+
+Kopirajmo najprije podatke u novi data.frame kako ne bi promijenili prave vrijednosti.
+
+```{r}
+strokeData_copy = data.frame(stroke_data)
+```
+Kako bi lakše baratali sa varijablom "smoking_status", možemo je pretvoriti u "character" tip podatka.
+
+```{r}
+strokeData_copy['smoking_status'] <- sapply(strokeData_copy['smoking_status'], as.character);
+
+```
+Izbacimo status 'Unknown' iz tablice
+
+```{r}
+tab <- table(strokeData_copy[strokeData_copy$smoking_status == "formerly smoked" | strokeData_copy$smoking_status == "never smoked" | strokeData_copy$smoking_status == "smokes",]$smoking_status, 
+            strokeData_copy[strokeData_copy$smoking_status == "formerly smoked" | strokeData_copy$smoking_status == "never smoked" | strokeData_copy$smoking_status == "smokes",]$stroke)
+tab
+```
+
+```{r}
 # Dodamo sume redaka i stupaca
 added_margins_tbl = addmargins(tab)
 added_margins_tbl
-
 ```
+
+
+Iz tablice je izostavljena kategorija 'Unknown' jer ne predstavlja stvarni status pušenja te može loše utjecati na test.
+
+Pretpostavka testa je da očekivana frekvencija pojedinog razreda mora biti veća ili jednaka 5.
+
+```{r}
+for (col_names in colnames(added_margins_tbl)){
+  for (row_names in rownames(added_margins_tbl)){
+    if (!(row_names == 'Sum' | col_names == 'Sum') ){
+      cat('Očekivane frekvencije za razred ',col_names,'-',row_names,': ',(added_margins_tbl[row_names,'Sum'] * added_margins_tbl['Sum',col_names]) / added_margins_tbl['Sum','Sum'],'\n')
+    }
+  }
+}
+```
+Pošto su sve frekvencije veće od 5, pretpostavka testa je zadovoljena i možemo nastaviti sa testom.
 
 ```{r}
 # Hi-kvadrat test
-test <- chisq.test(tab)
+test <- chisq.test(tab, correct=F)
 test
 ```
 
-Možemo vidjeti da je p-value = 2.085e-06, što je znatno ispod 0.05.
-Na temelju ovoga, odbacujemo H0 u korist H1 i zaključujemo da su smoking_status i stroke zavisni
 
-Također, možemo vidjeti i očekivane frekvencije
+Dobivena p-vrijednost iznosi p = 0.003285. Budući da je p-vrijednost manja od razine značajnosti α = 0.05, odbacujemo nultu hipotezu u korist alternativne hipoteze. Zaključujemo da postoji statistički značajna povezanost između statusa pušenja i pojave moždanog udara.
 
-```{r}
-test$expected
-```
+
+
+### Zaključak
+
+Rezultati analize pokazuju da je status pušenja statistički značajno povezan s pojavom moždanog udara u promatranom skupu podataka. Ovaj rezultat u skladu je s medicinskim spoznajama da pušenje povećava
+rizik od kardiovaskularnih i cerebrovaskularnih bolesti.
+
+Iako se na temelju ovih podataka ne može zaključiti uzročnost, dobiveni rezultati naglašavaju važnost prestanka pušenja kao preventivne mjere protiv moždanog udara.
+
 
 
 
