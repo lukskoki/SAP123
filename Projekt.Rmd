@@ -113,13 +113,13 @@ hist(
 Histogram se koristi za uvid u raspodjelu numeričke varijable. Distribucija prosječne razine glukoze je asimetrična (pozitivno nagnuta), pri čemu većina pacijenata ima vrijednosti između približno 70 i 110 mg/dL, dok manji broj pacijenata ima izrazito povišene razine glukoze. To upućuje na prisutnost potencijalnih rizičnih skupina za moždani udar.
 
 ```{r}
-hist(
-  stroke_data$bmi,
-  breaks = 30,
-  col = "lightgray",
-  main = "Distribucija BMI-ja",
-  xlab = "BMI"
-)
+#hist(
+#  stroke_data$bmi,
+#  breaks = 30,
+#  col = "lightgray",
+#  main = "Distribucija BMI-ja",
+#  xlab = "BMI"
+#)
 ```
 Distribucija BMI-ja je asimetrična s desnim repom, pri čemu se većina vrijednosti nalazi između približno 20 i 35. Prisutne su i ekstremno visoke vrijednosti BMI-ja, što može upućivati na potencijalne stršeće vrijednosti koje je potrebno uzeti u obzir u daljnjoj analizi. Za sada ih nije potrebno uklanjati jer predstavljaju realne, iako rijetke, medicinske slučajeve te mogu biti relevantne za analizu moždanog udara.
 
@@ -237,6 +237,42 @@ legend(
 ```
 
 Vidljivo je da je distribucija za pacijente s moždanim udarom pomaknuta prema višim vrijednostima glukoze, dok pacijenti bez moždanog udara češće imaju niže i srednje vrijednosti. Ova vizualizacija dodatno potvrđuje statistički značajnu razliku u prosječnoj razini glukoze između skupina.
+
+## 2. Pitanje: Postoji li interakcijski učinak hipertenzije i srčanih bolesti na BMI?
+
+Za utvrđivanje interakcijskog učinka hipertenzije i srčanih bolesti na BMI možemo koristiti višestruku linearnu regresiju ako podaci zadovoljavaju sve njene uvjete. Regresori moraju biti linearni, to je zadovoljeno jer oba regresora poprimaju vrijednosti 0 ili 1. Reakcija mora biti kontinuirana  
+
+
+
+```{r}
+#novi dataset sa samo nužnim vrijednostima
+
+data <- stroke_data[ , c("bmi" , "hypertension" , "heart_disease")]
+
+model <- lm(log(bmi) ~ hypertension * heart_disease, data = data)
+
+hist(residuals(model), col = "royalblue4")
+
+input <- stroke_data[, c("bmi" , "hypertension")]
+
+plot(x = input$hypertension, y = input$bmi,)
+
+input <- stroke_data[, c("bmi" , "heart_disease")]
+
+plot(x = input$heart_disease, y = input$bmi,)
+
+plot(fitted(model), residuals(model))
+abline(h = 0, col = "red")
+
+```
+```{r}
+
+summary(model)
+
+qqnorm(residuals(model))
+qqline(residuals(model))
+
+```
 
 ## 3. Pitanje: Koji čimbenici najbolje predviđaju nastanak moždanog udara kada razmatramo dob, razinu glukoze, BMI i hipertenziju?
 
