@@ -14,12 +14,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Motivacija i opis problema
 
-Moždani udar jedna je od vodećih uzroka smrti i invaliditeta širom svijeta. Prema podacima Svjetske zdravstvene organizacije (WHO), moždani udar odgovoran je za približno 11% svih smrtnih slučajeva globalno. Rana identifikacija osoba s visokim rizikom od moždanog udara ključna je za pravovremenu intervenciju i prevenciju. 
+Moždani udar jedna je od vodećih uzroka smrti i invaliditeta širom svijeta. Prema podacima Svjetske zdravstvene organizacije (WHO), moždani udar odgovoran je za približno 11% svih smrtnih slučajeva globalno. Rana identifikacija osoba s visokim rizikom od moždanog udara ključna je za pravovremenu intervenciju i prevenciju.
 
-Suvremeni pristupi u medicini sve više koriste statističke metode i strojno učenje za analizu zdravstvenih podataka kako bi se identificirali čimbenici rizika i razvili prediktivni modeli. Ovaj projekt fokusira se na analizu kliničkih podataka pacijenata s ciljem razumijevanja čimbenika koji doprinose riziku od moždanog udara. 
+Suvremeni pristupi u medicini sve više koriste statističke metode i strojno učenje za analizu zdravstvenih podataka kako bi se identificirali čimbenici rizika i razvili prediktivni modeli. Ovaj projekt fokusira se na analizu kliničkih podataka pacijenata s ciljem razumijevanja čimbenika koji doprinose riziku od moždanog udara.
 
 ## Case study: *Predikcija moždanog udara*
-Interpretacija podataka značajan je dio obrade podataka. Stoga je bitno znati kontekst podataka i upoznati se s datasetom. 
+
+Interpretacija podataka značajan je dio obrade podataka. Stoga je bitno znati kontekst podataka i upoznati se s datasetom.
 
 ```{r}
 stroke_data = read.csv("healthcare-dataset-stroke-data.csv")
@@ -32,12 +33,14 @@ head(stroke_data)
 ```
 
 ## Osnovna deskriptivna statistika
-Cilj deskriptivne statistike je opisivanje, sažimanje i interpretacija podataka na način koji olakšava razumijevanje njihovih osnovnih obilježja, ali ne daje nikakve zaključke o uzrocima ili posljedicama.  
+
+Cilj deskriptivne statistike je opisivanje, sažimanje i interpretacija podataka na način koji olakšava razumijevanje njihovih osnovnih obilježja, ali ne daje nikakve zaključke o uzrocima ili posljedicama.
 
 ```{r}
 # Osnovna deskriptivna statistika:
 summary(stroke_data)
 ```
+
 Naredba summary() koristi se za brz pregled osnovnih statističkih karakteristika podataka (raspon, medijan, prosjek i kvartile).
 
 Skup podataka sadrži 5110 pacijenata. Dob pacijenata kreće se od 0.08 do 82 godine, s prosječnom dobi od 43.23 godine i medijanom od 45 godina. Većina pacijenata nema hipertenziju ni srčane bolesti, što je vidljivo iz niskih prosječnih vrijednosti binarnih varijabli hypertension (9.7%) i heart_disease (5.4%).
@@ -56,82 +59,33 @@ stroke_data$stroke <- as.factor(stroke_data$stroke)
 
 ```
 
+Naredba table() koristi se za prikaz frekvencija kategorijskih varijabli.
+
 ```{r}
 lapply(stroke_data[, sapply(stroke_data, is.factor)], table)
 ```
-Naredba table() koristi se za prikaz frekvencija kategorijskih varijabli.
 
 U uzorku prevladavaju žene (2994) u odnosu na muškarce (2115), dok je kategorija Other zanemariva. Većina pacijenata je u braku (3353), a najzastupljeniji tip zaposlenja je Private sektor (2925), dok je najmanje pacijenata koji nikada nisu radili.
 
 Distribucija prebivališta je gotovo ravnomjerna između urbanih (2596) i ruralnih (2514) područja. Kod statusa pušenja najčešća je kategorija never smoked (1892), dok je značajan udio pacijenata s nepoznatim statusom pušenja (1544), što može utjecati na daljnju analizu.
 
-
 ```{r}
 table(stroke_data$stroke)
 prop.table(table(stroke_data$stroke)) * 100
 ```
+
 Ciljna varijabla stroke pokazuje izrazitu neuravnoteženost, s velikom većinom pacijenata bez moždanog udara (4861) u odnosu na one koji su ga doživjeli (249).
-
-## Vizualizacija podataka
-
-Vizualizacija podataka proces je prikazivanja informacija pomoću grafičkih ili slikovnih elemenata kako bi se olakšalo razumijevanje, analiza i interpretacija podataka.  
-
-```{r}
-barplot(
-  table(stroke_data$stroke),
-  col = c("lightblue", "tomato"),
-  main = "Distribucija moždanog udara",
-  xlab = "Stroke",
-  ylab = "Broj pacijenata"
-)
-
-```
-Bar graf prikazuje raspodjelu ciljne varijable stroke. Vidljivo je da velika većina pacijenata nije doživjela moždani udar (vrijednost 0), dok je broj pacijenata s moždanim udarom (vrijednost 1) znatno manji. Ovakva raspodjela potvrđuje da je skup podataka izraženo neuravnotežen, što je važno uzeti u obzir u daljnjoj statističkoj analizi i modeliranju.
-
-
-```{r}
-hist(
-  stroke_data$age,
-  breaks = 30,
-  col = "lightgray",
-  main = "Distribucija dobi pacijenata",
-  xlab = "Dob"
-)
-```
-
-Histogram se koristi za prikaz raspodjele numeričke varijable. Distribucija dobi pokazuje da su u uzorku zastupljene sve dobne skupine, s najvećim brojem pacijenata u srednjim i starijim dobnim skupinama. Raspon dobi je širok, što omogućuje analizu utjecaja dobi na pojavu moždanog udara.
-
-```{r}
-hist(
-  stroke_data$avg_glucose_level,
-  breaks = 30,
-  col = "lightgray",
-  main = "Distribucija razine glukoze",
-  xlab = "Prosječna razina glukoze (mg/dL)"
-)
-```
-Histogram se koristi za uvid u raspodjelu numeričke varijable. Distribucija prosječne razine glukoze je asimetrična (pozitivno nagnuta), pri čemu većina pacijenata ima vrijednosti između približno 70 i 110 mg/dL, dok manji broj pacijenata ima izrazito povišene razine glukoze. To upućuje na prisutnost potencijalnih rizičnih skupina za moždani udar.
-
-```{r}
-#hist(
-#  stroke_data$bmi,
-#  breaks = 30,
-#  col = "lightgray",
-#  main = "Distribucija BMI-ja",
-#  xlab = "BMI"
-#)
-```
-Distribucija BMI-ja je asimetrična s desnim repom, pri čemu se većina vrijednosti nalazi između približno 20 i 35. Prisutne su i ekstremno visoke vrijednosti BMI-ja, što može upućivati na potencijalne stršeće vrijednosti koje je potrebno uzeti u obzir u daljnjoj analizi. Za sada ih nije potrebno uklanjati jer predstavljaju realne, iako rijetke, medicinske slučajeve te mogu biti relevantne za analizu moždanog udara.
 
 ## Čišćenje podataka
 
-Moguće je da u podatcima nedostaju neke vrijednosti, koje u učitanom dataframe-u poprimaju vrijednost `N/A`. 
+Moguće je da u podatcima nedostaju neke vrijednosti, koje u učitanom dataframe-u poprimaju vrijednost `N/A`.
 
-Kako ćemo tretirati nedostajuće vrijednosti ovisit će prvenstveno o samom datasetu, odnosno kontekstu podataka. 
+Kako ćemo tretirati nedostajuće vrijednosti ovisit će prvenstveno o samom datasetu, odnosno kontekstu podataka.
 
 ```{r}
 colSums(is.na(stroke_data))
 ```
+
 Naredba colSums(is.na()) koristi se za utvrđivanje broja nedostajućih vrijednosti po varijabli.
 
 ```{r}
@@ -143,58 +97,59 @@ stroke_data$bmi[stroke_data$bmi == "N/A"] <- NA
 stroke_data$bmi <- as.numeric(stroke_data$bmi)
 ```
 
-
 ```{r}
 colSums(is.na(stroke_data))
 ```
+
 Iako je u početnom prikazu izgledalo da nema nedostajućih vrijednosti, varijabla bmi sadržavala je vrijednosti "N/A" učitane kao znakovni tip podataka, koje R ne prepoznaje kao stvarne nedostajuće vrijednosti. Nakon konverzije "N/A" u NA, utvrđeno je da varijabla bmi sadrži 201 nedostajuću vrijednost.
 
 ```{r}
-#Stvaramo kopiju podataka za uporabu za imputaciju
 imp_data <- stroke_data
 
-#Izrađujemo regresijski model za predviđanje bmi vrijednosti
 bmi_imp_model <- lm(bmi ~ age + gender + avg_glucose_level + heart_disease + hypertension,
                     data = imp_data,
                     na.action = na.exclude)
 
-#Dobivamo predviđene vrijednosti
 bmi_pred <- predict(bmi_imp_model, newdata = imp_data)
 
-#Tražimo devijaciju residuala kako bismo implementirali varijaciju u predviđanja
 res_sd <- sd(residuals(bmi_imp_model), na.rm = TRUE)
 
-#Za usporedbu stvaramo dodatni stupac za nove vrijednosti
 imp_data$bmi_imp <- imp_data$bmi
 
-#Upisujemo predviđene vrijednosti i dodajemo stohastičku komponentu
 imp_data$bmi_imp[is.na(imp_data$bmi)] <- bmi_pred[is.na(imp_data$bmi)] + rnorm(sum(is.na(imp_data$bmi)), 0, res_sd)
 
-#Prikaz razlike BMI-ja prije i poslije imputacije
 par(mfrow = c(1,2))
 hist(imp_data$bmi, main = "Izvorni BMI", col = "gray", xlab = "BMI")
 hist(imp_data$bmi_imp, main = "Imputirani BMI", col = "blue", xlab = "BMI")
 
-#Prepisujemo originalne BMI vrijednosti imputiranim
 stroke_data$bmi[is.na(stroke_data$bmi)] <- imp_data$bmi_imp[is.na(stroke_data$bmi)]
 ```
 
-Odabrali smo stohastičku regresijsku imputaciju jer velik udio N/A vrijednosti se nalazio među pacijentima s moždanim udarom što bi moglo značajno utjecati na testove koji uključuju ovaj čimbenik pošto je udio pacijenata s moždanim udarom već sam po sebi nizak. Ova imputacija zadržava relativne odnose među čimbenicima te uključuje i varijabilnu komponentu pomoću residuala regresije.
+S obzirom da se veliki udio N/A vrijednosti nalazi među pacijentima s moždanim udarom, kojih je neuravnoteženo manje od onih koji nisu doživjeli moždani udar, odabrali smo stohastičku regresijsku imputaciju budući da zadržava relativne odnose među čimbenicima te uključuje i varijabilnu komponentu pomoću reziduala regresije.
 
 ## 1. pitanje: Postoji li statistički značajna razlika u prosječnoj razini glukoze između pacijenata sa i bez moždanog udara?
 
+Moždani udar jedan je od vodećih uzroka smrtnosti i trajnih posljedica za zdravlje, a rizični čimbenici poput povišene razine glukoze u krvi često se povezuju s njegovom pojavom. Razina glukoze može odražavati metaboličke poremećaje poput dijabetesa, koji su poznati čimbenici rizika za kardiovaskularne bolesti.
+
+Cilj ovog zadatka je ispitati postoji li statistički značajna razlika u prosječnoj razini glukoze između pacijenata koji su doživjeli moždani udar i onih koji ga nisu doživjeli. Time se nastoji procijeniti može li razina glukoze poslužiti kao potencijalni pokazatelj povećanog rizika od moždanog udara, što ima važno značenje u prevenciji i ranom prepoznavanju rizičnih skupina pacijenata.
+
+Kako bi se ispitala razlika u prosječnoj razini glukoze između pacijenata sa i bez moždanog udara, postavljene su sljedeće hipoteze:
+
+H0: Ne postoji razlika u prosječnoj razini glukoze između pacijenata sa i bez moždanog udara. \
+H1: Postoji razlika u prosječnoj razini glukoze između pacijenata sa i bez moždanog udara.
+
+Prije provođenja statističkog testa, prikazana je deskriptivna statistika prosječne razine glukoze za pacijente sa i bez moždanog udara, kako bi se stekao uvid u osnovne razlike između promatranih skupina.
+
 ```{r}
-t_test_glucose <- t.test(
-  avg_glucose_level ~ stroke,
-  data = stroke_data
+tapply(
+  stroke_data$avg_glucose_level,
+  stroke_data$stroke,
+  summary
 )
 
-t_test_glucose
 ```
 
-Za ispitivanje razlike u prosječnoj razini glukoze između pacijenata sa i bez moždanog udara korišten je Welchov t-test, jer su skupine nejednake veličine i ne pretpostavlja se jednakost varijanci. Rezultati pokazuju da je razlika statistički značajna (p = 2.4 × 10⁻¹¹). Pacijenti koji su doživjeli moždani udar imaju višu prosječnu razinu glukoze (132.5 mg/dL) u usporedbi s pacijentima bez moždanog udara (104.8 mg/dL). Time se odbacuje nul-hipoteza i zaključuje da je razina glukoze povezana s pojavom moždanog udara. 
-
-To možemo i vizualno prikazati.
+Deskriptivna statistika pokazuje jasne razlike između promatranih skupina. Pacijenti bez moždanog udara imaju prosječnu razinu glukoze od 104.8 mg/dL i medijan od 91.5 mg/dL, dok pacijenti s moždanim udarom imaju znatno višu prosječnu razinu glukoze od 132.5 mg/dL i medijan od 105.2 mg/dL. Također je vidljivo da su više kvartilne vrijednosti i maksimalne razine glukoze izraženije u skupini pacijenata s moždanim udarom, što upućuje na veći raspon i varijabilnost u toj skupini. To možemo i vizualizirati.
 
 ```{r}
 boxplot(
@@ -202,41 +157,77 @@ boxplot(
   data = stroke_data,
   col = c("lightblue", "tomato"),
   main = "Razine glukoze prema moždanom udaru",
-  xlab = "Stroke",
+  xlab = "Moždani udar",
   ylab = "Prosječna razina glukoze (mg/dL)"
 )
 ```
 
-Vidljivo je da pacijenti koji su doživjeli moždani udar imaju višu medijanu i veći raspon vrijednosti glukoze u odnosu na pacijente bez moždanog udara. Ova vizualizacija potvrđuje rezultat Welchovog t-testa koji je pokazao statistički značajnu razliku u prosječnoj razini glukoze između skupina.
-
 Velik broj stršećih vrijednosti posljedica je asimetrične distribucije razine glukoze i velikog uzorka, a ne pogrešaka u podacima, stoga nisu uklonjene iz analize.
 
+```{r}
+glucose_0 <- stroke_data$avg_glucose_level[stroke_data$stroke == 0]
+glucose_1 <- stroke_data$avg_glucose_level[stroke_data$stroke == 1]
+
+par(mfrow = c(1, 2))
+
+hist(glucose_0,
+     breaks = 30,
+     col = "lightblue",
+     main = "Glukoza (bez moždanog udara)",
+     xlab = "Prosječna razina glukoze (mg/dL)")
+
+hist(glucose_1,
+     breaks = 30,
+     col = "tomato",
+     main = "Glukoza (moždani udar)",
+     xlab = "Prosječna razina glukoze (mg/dL)")
+
+par(mfrow = c(1, 1))
+
+```
+
+Vidljivo je da je distribucija za pacijente s moždanim udarom pomaknuta prema višim vrijednostima glukoze, dok pacijenti bez moždanog udara češće imaju niže i srednje vrijednosti. Histogrami razine glukoze za obje skupine pokazuju izraženu desnu asimetriju, pri čemu manji broj pacijenata ima znatno povišene vrijednosti glukoze. Ovakav oblik distribucije posebno je vidljiv u skupini pacijenata s moždanim udarom.
 
 ```{r}
-hist(
-  stroke_data$avg_glucose_level[stroke_data$stroke == 0],
-  breaks = 30,
-  col = rgb(0, 0, 1, 0.5),
-  xlim = c(50, 300),
-  main = "Distribucija glukoze po moždanom udaru",
-  xlab = "Prosječna razina glukoze (mg/dL)"
-)
+par(mfrow = c(1, 2))
 
-hist(
-  stroke_data$avg_glucose_level[stroke_data$stroke == 1],
-  breaks = 30,
-  col = rgb(1, 0, 0, 0.5),
-  add = TRUE
-)
+qqnorm(glucose_0, main = "QQ-plot glukoze (bez moždanog udara)")
+qqline(glucose_0, col = "red")
 
-legend(
-  "topright",
-  legend = c("Bez moždanog udara", "Moždani udar"),
-  fill = c(rgb(0,0,1,0.5), rgb(1,0,0,0.5))
+qqnorm(glucose_1, main = "QQ-plot glukoze (moždani udar)")
+qqline(glucose_1, col = "red")
+
+par(mfrow = c(1, 1))
+
+```
+
+QQ-plotovi dodatno potvrđuju odstupanja od normalne distribucije, osobito u gornjim kvantilima, gdje se uočava značajno odstupanje točaka od referentne linije. To upućuje na prisutnost asimetrije i ekstremnih vrijednosti u obje skupine.
+
+```{r}
+library(nortest)
+```
+
+Za formalnu provjeru normalnosti koristi se Lilliefors test, koji ispituje nul-hipotezu da podaci dolaze iz normalne distribucije. Ovo su hipoteze testa: H0: Podaci dolaze iz normalne distribucije H1: Podaci ne dolaze iz normalne distribucije
+
+```{r}
+lillie.test(glucose_0)
+lillie.test(glucose_1)
+
+```
+
+Lillieforsov test odbacuje nul-hipotezu normalnosti, što ukazuje da distribucija razine glukoze odstupa od normalne distribucije. Budući da smo vizualno i formalno utvrdili da distribucija razine glukoze značajno odstupa od normalne, odlučujemo se za neparametarski test koji ne zahtijeva normalnost: Mann-Whitney-Wilcox test. Postavljamo hipoteze: H0: Prosječne razine glukoze jednake su za pacijente sa i bez moždanog udara. H1: Prosječne razine glukoze razlikuju se između pacijenata sa i bez moždanog udara.
+
+```{r}
+wilcox.test(
+  avg_glucose_level ~ stroke,
+  data = stroke_data,
+  exact = FALSE
 )
 ```
 
-Vidljivo je da je distribucija za pacijente s moždanim udarom pomaknuta prema višim vrijednostima glukoze, dok pacijenti bez moždanog udara češće imaju niže i srednje vrijednosti. Ova vizualizacija dodatno potvrđuje statistički značajnu razliku u prosječnoj razini glukoze između skupina.
+Mann-Whitney-Wilcoxonov test pokazuje da postoji statistički značajna razlika u prosječnim razinama glukoze između pacijenata sa i bez moždanog udara (p = 3.64 × 10⁻⁹). Time se odbacuje nul-hipoteza jednakosti, što upućuje na to da se tipične vrijednosti razine glukoze razlikuju između promatranih skupina.
+
+Dobiveni rezultati u skladu su s medicinskim spoznajama prema kojima povišena razina glukoze predstavlja važan rizični čimbenik za nastanak moždanog udara. Time analiza potvrđuje da se obrasci prisutni u stvarnim kliničkim podacima odražavaju i u promatranom skupu podataka, što dodatno naglašava relevantnost razine glukoze kao potencijalnog pokazatelja povećanog rizika od moždanog udara.
 
 ## 2. Pitanje: Postoji li interakcijski učinak hipertenzije i srčanih bolesti na BMI?
 
@@ -515,6 +506,7 @@ Rezultati analize pokazuju da je status pušenja statistički značajno povezan 
 rizik od kardiovaskularnih i cerebrovaskularnih bolesti.
 
 Iako se na temelju ovih podataka ne može zaključiti uzročnost, dobiveni rezultati naglašavaju važnost prestanka pušenja kao preventivne mjere protiv moždanog udara.
+
 
 
 
