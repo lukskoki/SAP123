@@ -229,10 +229,17 @@ Mann-Whitney-Wilcoxonov test pokazuje da postoji statistički značajna razlika 
 
 Dobiveni rezultati u skladu su s medicinskim spoznajama prema kojima povišena razina glukoze predstavlja važan rizični čimbenik za nastanak moždanog udara. Time analiza potvrđuje da se obrasci prisutni u stvarnim kliničkim podacima odražavaju i u promatranom skupu podataka, što dodatno naglašava relevantnost razine glukoze kao potencijalnog pokazatelja povećanog rizika od moždanog udara.
 
+
+
 ## 2. Pitanje: Postoji li interakcijski učinak hipertenzije i srčanih bolesti na BMI?
 
-Za utvrđivanje interakcijskog učinka hipertenzije i srčanih bolesti na BMI možemo koristiti višestruku linearnu regresiju ako podaci zadovoljavaju sve njene uvjete. Regresori moraju biti linearni, to je zadovoljeno jer oba regresora poprimaju vrijednosti 0 ili 1. Reakcija mora biti kontinuirana  
 
+
+Analiziramo interakcijski učinak hipertenzije i srčanih bolesti na BMI, zanima nas utječe li kombinacija hipertenzije i srčanih bolesti dodatno na BMI, više od svake bolesti pojedinačno. 
+
+Koristit ćemo višestruku linearnu regresiju jer nam omogućuje istovremeno modeliranje hipertenzije i srčanih bolesti i njihove interakcije. Log-transformiramo BMI kako bi osigurali približnu normalnost reziduala, a grafičkim pregledom provjeravamo homogenost varijance.
+
+Kako bi procijenili interakcijski učinak napravit ćemo 2 modela jedan, jedan sa samo glavnim efektima i jedan koji ima i interakcijski član.
 
 
 ```{r}
@@ -242,15 +249,9 @@ data <- stroke_data[ , c("bmi" , "hypertension" , "heart_disease")]
 
 model <- lm(log(bmi) ~ hypertension * heart_disease, data = data)
 
+model0 <- lm(log(bmi) ~ hypertension + heart_disease, data = data)
+
 hist(residuals(model), col = "royalblue4")
-
-input <- stroke_data[, c("bmi" , "hypertension")]
-
-plot(x = input$hypertension, y = input$bmi,)
-
-input <- stroke_data[, c("bmi" , "heart_disease")]
-
-plot(x = input$heart_disease, y = input$bmi,)
 
 plot(fitted(model), residuals(model))
 abline(h = 0, col = "red")
@@ -258,12 +259,18 @@ abline(h = 0, col = "red")
 ```
 ```{r}
 
+anova(model0, model)
+
 summary(model)
 
 qqnorm(residuals(model))
 qqline(residuals(model))
 
 ```
+Anova test nam govori da je interakcija statistički značajna.
+
+Hipertenzija i srčane bolesti imaju značajan učinak na BMI, a njihova interakcija je negativna. To znači da osoba koja ima i hipertenziju i srčane bolesti ima manji dodatni učinak na BMI. 
+
 
 ## 3. Pitanje: Koji čimbenici najbolje predviđaju nastanak moždanog udara kada razmatramo dob, razinu glukoze, BMI i hipertenziju?
 
