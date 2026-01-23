@@ -106,22 +106,31 @@ Iako je u početnom prikazu izgledalo da nema nedostajućih vrijednosti, varijab
 ```{r}
 imp_data <- stroke_data
 
+# Stvaramo regresijski model prema kojem ćemo previđati BMI
 bmi_imp_model <- lm(bmi ~ age + gender + avg_glucose_level + heart_disease + hypertension,
                     data = imp_data,
                     na.action = na.exclude)
 
+# Previđamo vrijednosti
 bmi_pred <- predict(bmi_imp_model, newdata = imp_data)
 
+# Uzimamo standardnu devijaciju residuala
 res_sd <- sd(residuals(bmi_imp_model), na.rm = TRUE)
 
+# Prepisujemo postojeći BMI u novi stupac
 imp_data$bmi_imp <- imp_data$bmi
 
+# U novom stupcu imputiramo nedostajeće BMI vrijednosti koristeći predviđene BMI
+# vrijednosti i dodajemo varijancu pomoću standardne devijacije residuala
 imp_data$bmi_imp[is.na(imp_data$bmi)] <- bmi_pred[is.na(imp_data$bmi)] + rnorm(sum(is.na(imp_data$bmi)), 0, res_sd)
 
+
+# Stvaramo graf za usporedbu
 par(mfrow = c(1,2))
 hist(imp_data$bmi, main = "Izvorni BMI", col = "gray", xlab = "BMI")
 hist(imp_data$bmi_imp, main = "Imputirani BMI", col = "blue", xlab = "BMI")
 
+# Prepisujemo N/A vrijednosti izračunatim
 stroke_data$bmi[is.na(stroke_data$bmi)] <- imp_data$bmi_imp[is.na(stroke_data$bmi)]
 ```
 
@@ -301,6 +310,8 @@ Zaključno, analiza pokazuje da između hipertenzije i srčanih bolesti postoji 
 
 ## 3. Pitanje: Koji čimbenici najbolje predviđaju nastanak moždanog udara kada razmatramo dob, razinu glukoze, BMI i hipertenziju?
 
+Zanima nas kako različiti čimbenici utječu na nastanak moždanog udara, ovdje smo izlučili dob, prosječnu razinu glukoze u krvi, BMI i hipertenziju jer su svi biološki faktori koji bi mogli imati direktnu povezanost.
+
 Kako je potrebno usporediti utjecaj više nezavisnih varijabli na zavisnu, ovdje ćemo provesti logističku regresiju. Razlog zašto koristimo logističku, a ne linearnu regresiju je što nam je zavisna varijabla (reakcija) u binarnom obliku.
 
 Prije provedbe regresije potrebno je uvjeriti se da su podaci ispravno prilagođeni, logistička regresija ne zahtjeva normalnu razdiobu, ali je nužan linearni odnos numeričkih vrijednosti s log-izgledom moždanog udara. To ćemo pokazati grafički za dob, razinu glukoze i BMI.
@@ -311,12 +322,18 @@ library(ggplot2)
 
 plotdata <- stroke_data
 
+# Izrada funkcije za manju redundantnost koda
 plotfunc <- function(var, plotdata) {
   plotdata <- plotdata %>%
+    # Dodajemo novi stupac prema kojem ćemo podijelit podatke u decile, stupac iskazuje pripadnost decilu
     mutate(var_decile = ntile({{var}}, 10)) %>%
+    # Grupiramo po decilima
     group_by(var_decile) %>%
+    # Računamo prosječnu vrijednost za svaki decil te udio pacijenata s moždanim udarom po decilu
     summarise(mean_var = mean({{var}}), p_stroke = mean(as.integer(as.character(stroke)))) %>%
+    # Dodajemo stupac koji iskazuje log izgled moždanog udara s time da pribrajamo 0.001 na vjerojatnost moždanog udara kako bismo izbjegli nulu
     mutate(log_odds = log((p_stroke + 0.001) / (1 - p_stroke + 0.001)))
+  # Stavljamo na graf prosjek naše varijable i log izgled moždanog udara
   ggplot(plotdata, aes(x = mean_var, y = log_odds)) + 
     geom_point(size = 3, color = "blue") + 
     geom_smooth(method = "lm", se = FALSE, color = "red") + 
@@ -328,14 +345,17 @@ plotfunc <- function(var, plotdata) {
     theme_minimal()
 }
 
+# Pozivamo funkciju nad sva tri atributa
 plotfunc(age, plotdata)
 plotfunc(avg_glucose_level, plotdata)
 plotfunc(bmi, plotdata)
 ```
 
-Vidimo da za sva tri atributa se podaci većinom slažu s pravcem, to ukazuje na traženu linearnu vezu. Odstupanja su većinom na prvim i zadnjim točkama što je očekivano, kod BMI-ja uočavamo nešto veća odstupanja, ali još uvijek unutar očekivanja.
+Vidimo da za sva tri atributa se podaci većinom slažu s pravcem, to ukazuje na traženu linearnu vezu. Odstupanja su većinom na prvim i zadnjim točkama što je očekivano, kod BMI-ja uočavamo nešto veća odstupanja, ali još uvijek unutar očekivanja. To možemo interpretirati da za bmi znatno veći od medijana vidimo manji utjecaj na log izgled moždanog udara.
 
 Za hipertenziju nije potrebna ovakva provjera jer je varijabla binarna pa je podjela u decile besmislena te je linearnost pretpostavljena.
+
+Sad kad smo potvrdili uvjete za logističku regresiju možemo realizirati model. Već sada pomoću grafova možemo naslutiti da će dob imati veći izražaj u modelu zbog relativne stabilnosti varijance oko pravca dok će bmi imati manji zbog većih odstupanja.
 
 Provodimo logističku regresiju s logit vezom nad varijablama dob, razina glukoze, BMI i hipertenzija.
 
@@ -356,13 +376,13 @@ exp(coef(model))
 
 Regresija pokazuje da su vrijednosti glukoze i dob imali najznačajniji utjecaj. Hipertenzija je također bila značajna, no ne na istoj razini. BMI jedini nema značajni utjecaj.
 
-Konačno, vidimo koeficijente eksponirane za lakše razumijevanje, gledajući u ispis summary-a, povećanje svakog atributa za 1 očituje se zbrajanjem pripadne vrijednosti na log-izgled, eksponiranjem dobijemo jasniju metriku, vrijedi npr. da ako povećamo dob za 1 će se vjerojatnost moždanog udara za pripadnu vrijednost umnožiti.
+Konačno, vidimo koeficijente eksponirane za lakše razumijevanje, gledajući u ispis summary-a, povećanje svakog atributa za 1 očituje se zbrajanjem pripadne vrijednosti na log-izgled, ta skala je zato teško interpretabilna pa transformiramo dobivene vrijednosti. Eksponiranjem dobijemo jasniju metriku, vrijedi npr. da ako povećamo dob za 1 će se vjerojatnost moždanog udara za pripadnu vrijednost umnožiti. Ovdje nam je i dalje teško usporediti varijable jer je svaka na svojoj skali, dob se mjeri u godinama, a srednja razina glukoze u mg/dL, bilo kakva usporedba je besmislena trenutačno, no prije same usporedbe potrebno je utvditi da je model valjan, u suprotnom su bilo kakvi postignuti zaključci nevažeći.
 
-No ne znamo još da je ovaj model ispravan. Provest ćemo LR test kako bismo to utvrdili, postavljamo hipoteze
+Provest ćemo LR test kako bismo to utvrdili, postavljamo hipoteze:
 H0: niti jedan od odabranih atributa (dob, razina glukoze, BMI, hipertenzija) ne utječe na pojavu moždanog udara
-H1: barem jedan od odabranih atributa ima značajan utjecaj na izgled pojavu moždanog udara
+H1: barem jedan od odabranih atributa ima značajan utjecaj na izgled pojave moždanog udara
 
-LR test ćemo provesti uspoređujući dobiveni model s "null" modelom, null model sadrži samo slobodni koeficijent, odnosno ne ovisi niti o jednom atributu podataka osim zavisne varijable.
+LR test ćemo provesti uspoređujući dobiveni model s "null" modelom, null model sadrži samo slobodni koeficijent, odnosno ne ovisi niti o jednom atributu podataka osim zavisne varijable. Ako uočimo značajnu p-vrijednost na izlazu testa, imat ćemo potvrdu da je dodatak prediktora u model imao bitan utjecaj.
 
 ```{r}
 null_model <- glm(stroke ~ 1,
@@ -376,9 +396,10 @@ Vidimo iz rezultata da je p-vrijednost manja od 0.001 što nam daje izrazitu zna
 
 Sada možemo prijeći na glavno pitanje, koji od ovih čimbenika najbolje predviđa pojavu moždanog udara?
 
-Najlakše ćemo to utvrdit usporedbom omjera izglednosti nad standardiziranim varijablama. Prvo ćemo dakle ponoviti izradu modela sa sva tri numerička čimbenika standardizirana pa dobivene koeficijente eksponirat i usporedit, onaj s najvećom vrijednosti najbolje predviđa.
+Najlakše ćemo to utvrdit usporedbom omjera izglednosti nad standardiziranim varijablama. Prvo ćemo dakle ponoviti izradu modela sa sva tri numerička čimbenika standardizirana pa dobivene koeficijente eksponirat i usporedit, onaj s najvećom vrijednosti najbolje predviđa. Sa standardiziranim varijablama neće biti ranijeg problema gdje je svaka varijabla u svojoj mjernoj jedinici i skali, sve će se varijabli mjeriti u standardnim devijancama, odnosno umjesto da gledamo npr. dob u godinama gledat ćemo je kao udaljenost od vlastitog prosjeka izražena u vlastitoj standardnoj devijanci.
 
 ```{r}
+# Transformiramo podatke
 reg_data <- reg_data %>%
   mutate(
     age_z = (age - mean(age)) / sd(age),
@@ -386,6 +407,7 @@ reg_data <- reg_data %>%
     bmi_z = (bmi - mean(bmi)) / sd(bmi)
   )
 
+# Stvaramo novi model
 model_std <- glm(stroke ~ age_z + glucose_z + bmi_z + hypertension,
              data = reg_data,
              family = binomial)
@@ -395,7 +417,7 @@ summary(model_std)
 exp(coef(model_std))
 ```
 
-Ovdje sada jasno vidimo da je najutjecajniji čimbenik dob, za svaku standardnu devijancu od srednje vrijednosti, množimo izglednost moždanog udara za 4.98. Nakon dobi dolazi hipertenzija koja nije standardizirana zbog svoje binarnosti pa se manje precizno ovdje uspoređuje te nakon nje razina glukoze i konačno BMI koji ima vrlo slab utjecaj.
+Ovdje sada jasno vidimo da je najutjecajniji čimbenik dob, za svaku standardnu devijancu od srednje vrijednosti, množimo izglednost moždanog udara s 4.98. Nakon dobi dolazi hipertenzija koja nije standardizirana zbog svoje binarnosti pa se manje precizno ovdje uspoređuje te nakon nje razina glukoze i konačno BMI koji ima vrlo slab utjecaj i u testu ne značajan utjecaj. Ovo nam se slaže s očekivanjima, moždani udari su najzastupljeniji među starijim osobama, čimbenici poput hipertenzije i visoke prosječne razine glukoze mogu značajno utjecati na pojavu moždanog udara, no nisu presudni, s druge strane, BMI je općenito nestabilna mjera te evidentno nema veliki učinak.
 
 Zaključujemo da je dob čimbenik koji najbolje predviđa nastanak moždanog udara.
 
