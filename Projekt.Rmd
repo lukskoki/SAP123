@@ -250,10 +250,12 @@ Postavljamo hipoteze:
 
   H0: Ne postoji interakcijski učinak hipertenzije i srčanih bolesti na BMI
   H1: Postoji interakcijski učinak hipertenzije i srčanih bolesti na BMI
+  
+Metode između kojih biramo kako bi napravili analizu su ANOVA i višestruka regresija. Za anovu nije zadovoljena normalnost ni homogenost varijance te zato ANOVA nije statistički valjana za ove podatke.
 
-Koristit ćemo višestruku linearnu regresiju jer nam omogućuje istovremeno modeliranje hipertenzije i srčanih bolesti i njihove interakcije. Log-transformiramo BMI kako bi osigurali približnu normalnost reziduala, a grafičkim pregledom provjeravamo homogenost varijance.
+Koristit ćemo višestruku linearnu regresiju jer nam omogućuje istovremeno modeliranje hipertenzije i srčanih bolesti i njihove interakcije. Kako je BMI pozitivno asimetričan koristimo log-transformaciju kako bi osigurali približnu normalnost reziduala i stabilizirali varijancu, a grafičkim pregledom provjeravamo homogenost varijance.
 
-Kako bi procijenili interakcijski učinak napravit ćemo 2 modela jedan, jedan sa samo glavnim efektima i jedan koji ima i interakcijski član.
+Kako bi procijenili interakcijski učinak napravit ćemo 2 modela, jedan sa samo glavnim efektima i jedan koji ima i interakcijski član.
 
 
 ```{r}
@@ -290,7 +292,7 @@ abline(h = 0, col = "red")
 
 ```
 
-Deskriptivna analiza nam pokazuje razlike u prosječnim i medijanskim vrijednostima BMI-ja između skupina definiranih hipertenzijom i srčanim bolestima. Uočava se da kombinacija obje dijagnoze ne rezultira proporcionalno većim BMI-jem, što upućuje na mogući interakcijski učinak.
+Deskriptivna analiza nam pokazuje razlike u prosječnim i medijanskim vrijednostima BMI-ja između skupina definiranih hipertenzijom i srčanim bolestima. Uočava se da kombinacija obje dijagnoze ne rezultira proporcionalno većim BMI-jem, što upućuje na mogući interakcijski učinak. Standardna devijacija nam pokazuje nejednaku raspršenost podataka što nam potvrđuje da varijanca nije homogena, to dodatno opravdava korištenje regresije umjesto ANOVE.
 
 ```{r}
 
@@ -302,11 +304,13 @@ qqnorm(residuals(model))
 qqline(residuals(model))
 
 ```
-Anova test nam govori da je interakcija statistički značajna.
+QQ-plot ima manja odstupanja u repovima, ali većinom prati referentnu liniju, što zadovoljava pretpostavku normalnosti za primjenu linearne regresije.
 
-Hipertenzija i srčane bolesti imaju značajan učinak na BMI, a njihova interakcija je negativna. To znači da osoba koja ima i hipertenziju i srčane bolesti ima manji dodatni učinak na BMI. 
+Anova test nam govori da je interakcija statistički značajna. Model s interakcijom statistički značajno bolje opisuje podatke.
 
-Zaključno, analiza pokazuje da između hipertenzije i srčanih bolesti postoji statistički značajna interakcija u utjecaju na BMI. Ovaj rezultat naglašava važnost razmatranja zajedničkog djelovanja rizičnih čimbenika, umjesto njihove izolirane analize, pri interpretaciji zdravstvenih pokazatelja.
+Hipertenzija i srčane bolesti imaju značajan učinak na BMI, a njihova interakcija je negativna. To ukazuje da je zajednički učinak manji od zbroja pojedinačnih učinaka. Model objašnjava mali dio varijance BMI te iako je interakcija značajna, potrebno je razmatrati i druge faktore koji utječu na BMI.
+
+Zaključno, analiza pokazuje da između hipertenzije i srčanih bolesti postoji statistički značajna interakcija u utjecaju na BMI. Ovaj rezultat naglašava važnost razmatranja zajedničkog djelovanja rizičnih čimbenika, umjesto njihove izolirane analize pri interpretaciji zdravstvenih pokazatelja.
 
 ## 3. Pitanje: Koji čimbenici najbolje predviđaju nastanak moždanog udara kada razmatramo dob, razinu glukoze, BMI i hipertenziju?
 
@@ -376,7 +380,7 @@ exp(coef(model))
 
 Regresija pokazuje da su vrijednosti glukoze i dob imali najznačajniji utjecaj. Hipertenzija je također bila značajna, no ne na istoj razini. BMI jedini nema značajni utjecaj.
 
-Konačno, vidimo koeficijente eksponirane za lakše razumijevanje, gledajući u ispis summary-a, povećanje svakog atributa za 1 očituje se zbrajanjem pripadne vrijednosti na log-izgled, ta skala je zato teško interpretabilna pa transformiramo dobivene vrijednosti. Eksponiranjem dobijemo jasniju metriku, vrijedi npr. da ako povećamo dob za 1 će se vjerojatnost moždanog udara za pripadnu vrijednost umnožiti. Ovdje nam je i dalje teško usporediti varijable jer je svaka na svojoj skali, dob se mjeri u godinama, a srednja razina glukoze u mg/dL, bilo kakva usporedba je besmislena trenutačno, no prije same usporedbe potrebno je utvditi da je model valjan, u suprotnom su bilo kakvi postignuti zaključci nevažeći.
+Konačno, vidimo koeficijente eksponirane za lakše razumijevanje, gledajući u ispis summary-a, povećanje svakog atributa za 1 očituje se zbrajanjem pripadne vrijednosti na log-izgled, ta skala je zato teško interpretabilna pa transformiramo dobivene vrijednosti. Eksponiranjem dobijemo jasniju metriku, vrijedi npr. da ako povećamo dob za 1 će se vjerojatnost moždanog udara za pripadnu vrijednost umnožiti. Ovdje nam je i dalje teško usporediti varijable jer je svaka na svojoj skali, dob se mjeri u godinama, a srednja razina glukoze u mg/dL, bilo kakva usporedba je besmislena trenutačno, no prije same usporedbe potrebno je utvrditi da je model valjan, u suprotnom su bilo kakvi postignuti zaključci nevažeći.
 
 Provest ćemo LR test kako bismo to utvrdili, postavljamo hipoteze:
 H0: niti jedan od odabranih atributa (dob, razina glukoze, BMI, hipertenzija) ne utječe na pojavu moždanog udara
@@ -396,7 +400,7 @@ Vidimo iz rezultata da je p-vrijednost manja od 0.001 što nam daje izrazitu zna
 
 Sada možemo prijeći na glavno pitanje, koji od ovih čimbenika najbolje predviđa pojavu moždanog udara?
 
-Najlakše ćemo to utvrdit usporedbom omjera izglednosti nad standardiziranim varijablama. Prvo ćemo dakle ponoviti izradu modela sa sva tri numerička čimbenika standardizirana pa dobivene koeficijente eksponirat i usporedit, onaj s najvećom vrijednosti najbolje predviđa. Sa standardiziranim varijablama neće biti ranijeg problema gdje je svaka varijabla u svojoj mjernoj jedinici i skali, sve će se varijabli mjeriti u standardnim devijancama, odnosno umjesto da gledamo npr. dob u godinama gledat ćemo je kao udaljenost od vlastitog prosjeka izražena u vlastitoj standardnoj devijanci.
+Najlakše ćemo to utvrditi usporedbom omjera izglednosti nad standardiziranim varijablama. Prvo ćemo dakle ponoviti izradu modela sa sva tri numerička čimbenika standardizirana pa dobivene koeficijente eksponirat i usporedit, onaj s najvećom vrijednosti najbolje predviđa. Sa standardiziranim varijablama neće biti ranijeg problema gdje je svaka varijabla u svojoj mjernoj jedinici i skali, sve će se varijabli mjeriti u standardnim devijancama, odnosno umjesto da gledamo npr. dob u godinama gledat ćemo je kao udaljenost od vlastitog prosjeka izražena u vlastitoj standardnoj devijanci.
 
 ```{r}
 # Transformiramo podatke
